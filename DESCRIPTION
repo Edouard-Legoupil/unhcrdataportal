@@ -1,0 +1,16 @@
+Package: unhcrdataportal
+Version: 0.0.0.9000
+Title: Retrieve Data From UNHCR Data Portal
+Description: Use a function to retrieve the catalog / data in the system.
+Authors@R: c(person(given = "Hisham",
+         family = "Galal",
+         role = c("aut", "cre"),
+         email = "galalh@unhcr.org"),
+  person(given = "Edouard",
+         family = "Legoupil",
+         role = "aut",
+         email = "legoupil@unhcr.org"))
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3

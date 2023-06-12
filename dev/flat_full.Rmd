@@ -1,0 +1,201 @@
+---
+title: "flat_full.Rmd for working package"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+<!-- Run this 'development' chunk -->
+<!-- Store every call to library() that you need to explore your functions -->
+
+```{r development, include=FALSE}
+library(testthat)
+```
+
+<!--
+ You need to run the 'description' chunk in the '0-dev_history.Rmd' file before continuing your code there.
+
+If it is the first time you use {fusen}, after 'description', you can directly run the last chunk of the present file with inflate() inside.
+--> 
+
+
+<!--
+# There can be development actions
+
+Create a chunk with 'development' actions
+
+- The chunk needs to be named `development` or `dev`
+- It contains functions that are used for package development only
+- Note that you may want to store most of these functions in the 0-dev_history.Rmd file
+
+These are only included in the present flat template file, their content will not be part of the package anywhere else.
+-->
+
+```{r development-load}
+# Load already included functions if relevant
+pkgload::load_all(export_all = FALSE)
+```
+
+ 
+# odp
+
+
+<!--
+Create a chunk for the core of the function
+
+- The chunk needs to be named `function` at least
+- It contains the code of a documented function
+- The chunk can also be named `function-my_median` to make it easily
+findable in your Rmd
+- Let the `@examples` part empty, and use the next `examples` chunk instead to present reproducible examples
+
+After inflating the template
+
+-  This function code will automatically be added in a new file in the "R/" directory
+-->
+    
+```{r function-odp}
+#' Retrieve data from UNHCR Operational Data Portal 
+#' 
+#' 
+#' This function pulls key information from the portal
+#' 
+#' @return
+#' 
+#' @references \href{https://data.unhcr.org/}{UNHCR Operational Data Portal}
+#' 
+#' @export
+odp <- function(page = NULL, dataset = NULL) {
+  
+  
+  if (is.null(.GlobalEnv$.odp))
+    .GlobalEnv$.odp <- new.env(parent = emptyenv())
+
+  if (is.null(.GlobalEnv$.odp$sitemap))
+    .GlobalEnv$.odp$sitemap <- 
+      session(glue::glue("https://data.unhcr.org/en/site-map/")) |> 
+      html_elements("a[href*='/situations/'], 
+                     a[href*='/country/']") |> 
+      map(\(x) tibble(page_name = html_attr(x, "title"),
+                      page_url = httr::modify_url("https://data.unhcr.org/", path = html_attr(x, "href")))) |> 
+      list_rbind() |> 
+      mutate(page_type = if_else(str_detect(page_url, "/country/"), "country", "situation"),
+             .before = page_name)
+  
+  if (is.null(page))
+    return(.GlobalEnv$.odp$sitemap)
+  
+  if (is.null(.GlobalEnv$.odp[[page]]))
+    .GlobalEnv$.odp[[page]] <- 
+      .GlobalEnv$.odp$sitemap |> 
+      filter(page_name == page) |>
+      mutate(datasets = map(page_url, 
+                            \(url) session(url) |> 
+                              html_elements(xpath = "//div[a[contains(text(), 'JSON')]]") |> 
+                              (\(x) tibble(dataset_name = x |> html_text(trim = TRUE) |> (\(x) str_match(x, "(.+)\\n")[,2])(),
+                                           dataset_url = x |> html_element("a:contains('JSON')") |> html_attr("href")))() |> 
+                              filter(dataset_url != "#"))) |> 
+      unnest(datasets) |> 
+      mutate(dataset_type = map_chr(dataset_url, \(x) httr::parse_url(x)$path),
+             dataset_type = case_when(dataset_type == "population/" ~ "population",
+                                      dataset_type == "population/get/timeseries" ~ "population_x_time",
+                                      dataset_type == "population/get/sublocation" ~ "population_x_location",
+                                      dataset_type == "population/get/origin" ~ "population_x_origin",
+                                      dataset_type == "population/get/sublocation/root" ~ "population_x_location2",
+                                      dataset_type == "population/get/demography" ~ "demographics",
+                                      dataset_type == "population/get/demography/simplified" ~ "demographics"),
+             .before = dataset_name)
+  
+  if (is.null(dataset))
+    return(.GlobalEnv$.odp[[page]])
+  
+  if (is.null(.GlobalEnv$.odp[[glue::glue("{page}/{dataset}")]]))
+    .GlobalEnv$.odp[[glue::glue("{page}/{dataset}")]] <- 
+      jsonlite::fromJSON(filter(.GlobalEnv$.odp[[page]], dataset_name == dataset)$dataset_url) |> 
+      modify_tree(leaf = \(x) if (is.data.frame(x)) as_tibble(x) else x)
+  
+  .GlobalEnv$.odp[[glue::glue("{page}/{dataset}")]]    
+}
+```
+
+<!--
+Create a chunk with an example of use for your function
+
+- The chunk needs to be named `examples` at least
+- It contains working examples of your function
+- The chunk is better be named `examples-my_median` to be handled
+correctly when inflated as a vignette
+
+After inflating the template
+
+-  This example will automatically be added in the '@examples' part of our function above in the "R/" directory
+- This example will automatically be added in the vignette created from this Rmd template
+-->
+
+
+ 
+```{r example-odp}
+## Use as
+
+## odp(): to retrieve an overview of all available country / situation pages
+
+odp("Sudan situation") |> 
+  transmute(page_name, dataset_name, data = map2(page_name, dataset_name, compose(as_tibble, odp))) |> 
+  pull(data) |> 
+  list_rbind()
+
+## to retrieve the datasets for a specific country /situation
+# odp(page)
+
+## to retrieve a specific dataset on the given page as a parsed JSON
+# odp(page, dataset)
+
+
+
+
+```
+
+
+<!--
+Create a chunk with a test of use for your function
+
+- The chunk needs to be named `tests` at least
+- It contains working tests of your function
+- The chunk is better be named `tests-my_median` to be handled
+correctly when inflated as a vignette
+
+After inflating the template
+
+-  This test code will automatically be added in the "tests/testthat/" directory
+-->
+
+
+
+```{r tests-odp}
+test_that("odp works", {
+  expect_true(inherits(odp, "function")) 
+})
+```
+
+
+
+<!--
+# Inflate your package
+
+You're one inflate from paper to box.
+Build your package from this very Rmd using `fusen::inflate()`
+
+- Verify your `"DESCRIPTION"` file has been updated
+- Verify your function is in `"R/"` directory
+- Verify your test is in `"tests/testthat/"` directory
+- Verify this Rmd appears in `"vignettes/"` directory
+-->
+
+```{r development-inflate, eval=FALSE}
+# Keep eval=FALSE to avoid infinite loop in case you hit the knit button
+# Execute in the console directly
+fusen::inflate(flat_file = "dev/flat_full.Rmd", vignette_name = "Get started")
+```
+
+
+
