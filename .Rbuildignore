@@ -1,3 +1,12 @@
 
 ^dev$
 ^LICENSE\.md$
+^README\.Rmd$
+^CODE_OF_CONDUCT\.md$
+^\.github$
+^unhcrdataportal\.Rproj$
+^\.Rproj\.user$
+^rsconnect$
+^test$
+^docs$
+^app\.R$

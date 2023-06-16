@@ -14,6 +14,7 @@ All commands that you use to use when developing packages...
 ```{r description, eval=FALSE}
 # Describe your package
 fusen::fill_description(
+  overwrite = TRUE,
   pkg = here::here(),
   fields = list(
     Title = "Retrieve data from UNHCR Data Portal",
@@ -21,7 +22,7 @@ fusen::fill_description(
     `Authors@R` = c(
     person("Hisham", "Galal", , "galalh@unhcr.org", role = c("aut", "cre")),
     person("Edouard", "Legoupil", , "legoupil@unhcr.org", role = "aut")
-      )
+      
     )
   )
 )
@@ -60,7 +61,7 @@ usethis::use_news_md()
 
 ```{r, eval=FALSE}
 # Pipe
-usethis::use_pipe()
+# usethis::use_pipe()
 
 # package-level documentation
 usethis::use_package_doc()
@@ -77,7 +78,7 @@ usethis::use_github_action_check_standard()
 usethis::use_github_action("pkgdown")
 usethis::use_github_action("test-coverage")
 # _GitLab
-gitlabr::use_gitlab_ci(type = "check-coverage-pkgdown")
+#gitlabr::use_gitlab_ci(type = "check-coverage-pkgdown")
 
 # Add new flat template
 fusen::add_flat_template("add")
